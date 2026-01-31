@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz | StudyPilot</title>
+
+<style>
+    body {
+        font-family: "Segoe UI", Roboto, sans-serif;
+        background: #f7f9fc;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 18px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 6px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #6b7280;
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 999px;
+        border: none;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #1a73e8;
+        color: white;
+    }
+
+    .btn-success {
+        background: #16a34a;
+        color: white;
+        margin-top: 30px;
+    }
+
+    .question {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .question p {
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .options label {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+        cursor: pointer;
+    }
+
+    .options input {
+        margin-right: 8px;
+        accent-color: #1a73e8;
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>🧠 Quiz: {{ title }}</h2>
+    <div class="subtitle">
+        Test your understanding from the study material
+    </div>
+
+    <!-- STEP 1 -->
+    <button id="generateBtn" class="btn btn-primary" onclick="generateQuiz()">
+        Generate Quiz
+    </button>
+
+    <!-- STEP 2 -->
+    <div id="quizSection" class="hidden">
+        <div id="quiz"></div>
+
+        <!-- STEP 3 -->
+        <button class="btn btn-success" onclick="submitQuiz()">
+            Submit Quiz
+        </button>
+    </div>
+
+</div>
+
+<script>
+let quizData = [];
+const materialId = {{ material_id }};
+
+function generateQuiz() {
+    document.getElementById("generateBtn").innerText = "Generating quiz...";
+    document.getElementById("generateBtn").disabled = true;
+
+    fetch(`/quiz/${materialId}/data/`)
+    .then(res => res.json())
+    .then(data => {
+        quizData = data.quiz;
+        renderQuiz();
+        document.getElementById("quizSection").classList.remove("hidden");
+        document.getElementById("generateBtn").classList.add("hidden");
+    });
+}
+
+function renderQuiz() {
+    const quizDiv = document.getElementById("quiz");
+    quizDiv.innerHTML = "";
+
+    quizData.forEach((q, i) => {
+        let html = `
+        <div class="question">
+            <p>${i + 1}. ${q.question}</p>
+            <div class="options">`;
+
+        q.options.forEach((opt, j) => {
+            html += `
+                <label>
+                    <input type="radio" name="q${i}" value="${j}">
+                    ${opt}
+                </label>`;
+        });
+
+        html += `</div></div>`;
+        quizDiv.innerHTML += html;
+    });
+}
+
+function submitQuiz() {
+    let score = 0;
+
+    quizData.forEach((q, i) => {
+        const selected = document.querySelector(
+            `input[name="q${i}"]:checked`
+        );
+        if (selected && parseInt(selected.value) === q.answer) {
+            score++;
+        }
+    });
+
+    // ✅ REDIRECT TO RESULT PAGE
+    window.location.href =
+        `/quiz/${materialId}/result/?score=${score}&total=${quizData.length}`;
+}
+</script>
+
+</body>
+</html>

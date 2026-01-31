@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz Result | StudyPilot</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f7f9fc;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .box {
+            background: white;
+            padding: 40px;
+            border-radius: 18px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #16a34a;
+            margin: 20px 0;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #1a73e8;
+            color: white;
+            text-decoration: none;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>🎉 Quiz Completed</h2>
+    <div class="score">
+        Your Score: {{ score }} / {{ total }}
+    </div>
+    <a href="{% url 'material_view' %}">
+        Back to Materials
+    </a>
+</div>
+
+</body>
+</html>

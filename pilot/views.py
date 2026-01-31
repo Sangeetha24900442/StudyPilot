@@ -104,6 +104,7 @@ def upload_material(request):
             request,
             "PDF uploaded and text extracted successfully"
         )
+        return redirect("material_view")
 
     return render(
         request,
@@ -126,7 +127,157 @@ def material_view(request):
             "materials": materials
         }
     )
+@login_required
+def material_answer(request):
+    if request.method != "POST":
+        return JsonResponse({"reply": "Invalid request method"})
 
+    try:
+        data = json.loads(request.body)
+        material_id = data.get("material_id")
+
+        material = StudyMaterial.objects.get(
+            id=material_id,
+            student=request.user
+        )
+
+        if not material.extracted_text:
+            return JsonResponse({"reply": "No extracted text found."})
+
+        prompt = f"""
+Explain the following study notes in a very simple,
+easy-to-understand way for a student.
+
+Use bullet points if possible.
+
+STUDY NOTES:
+{material.extracted_text[:12000]}
+"""
+
+        headers = {
+            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": "openai/gpt-5.2-codex",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=40
+        )
+
+        result = response.json()
+
+        # 🔴 SAFETY CHECK (THIS WAS MISSING)
+        if "choices" not in result:
+            return JsonResponse({
+                "reply": "AI did not return a valid response."
+            })
+
+        reply = result["choices"][0]["message"]["content"]
+
+        return JsonResponse({"reply": reply})
+
+    except Exception as e:
+        return JsonResponse({
+            "reply": f"Error generating answer: {str(e)}"
+        })
+    
+@login_required
+def quiz_page(request, material_id):
+    material = StudyMaterial.objects.get(
+        id=material_id,
+        student=request.user
+    )
+
+    return render(
+        request,
+        "pilot/quiz.html",
+        {"material_id": material_id, "title": material.title}
+    )
+
+
+@login_required
+def generate_quiz(request, material_id):
+    material = StudyMaterial.objects.get(
+        id=material_id,
+        student=request.user
+    )
+
+    if not material.extracted_text:
+        return JsonResponse({
+            "error": "No extracted text found for this material."
+        })
+
+    prompt = f"""
+You are an academic quiz generator.
+
+Generate EXACTLY 5 multiple-choice questions
+from the study notes below.
+
+Rules:
+- 4 options per question
+- 1 correct answer
+- Questions ONLY from the notes
+- Return ONLY valid JSON
+
+Format:
+[
+  {{
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"],
+    "answer": 0
+  }}
+]
+
+STUDY NOTES:
+{material.extracted_text[:12000]}
+"""
+
+    headers = {
+        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "openai/gpt-5.2-codex",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2
+    }
+
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        timeout=40
+    )
+
+    result = response.json()
+
+    quiz = json.loads(
+        result["choices"][0]["message"]["content"]
+    )
+
+    return JsonResponse({"quiz": quiz})
+
+@login_required
+def quiz_result(request, material_id):
+    score = request.GET.get("score", 0)
+    total = request.GET.get("total", 0)
+
+    return render(
+        request,
+        "pilot/quiz_result.html",
+        {"score": score, "total": total}
+    )
 
 
 
@@ -140,88 +291,63 @@ def material_view(request):
 # CHAT INTEGRATION
 #---------------------------------------------------------------
 
-# OpenRouter API endpoint
+#OpenRouter API endpoint
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 @csrf_exempt
 def chatbot(request):
     if request.method == "POST":
         try:
-            # 🔹 Load request data (material id)
+            # Load user message from request
             data = json.loads(request.body)
-            material_id = data.get("material_id")
+            user_message = data.get("message", "").strip()
 
-            if not material_id:
-                return JsonResponse({
-                    "reply": "Material not specified."
-                })
+            if not user_message:
+                return JsonResponse({"reply": "Please enter a message."})
 
-            # 🔹 Fetch the material
-            material = StudyMaterial.objects.get(
-                id=material_id,
-                student=request.user
-            )
+            # Debug: print API key to check if loaded (remove in production)
+            print("OpenRouter API Key:", settings.OPENROUTER_API_KEY)
 
-            extracted_text = material.extracted_text.strip()
-
-            if not extracted_text:
-                return JsonResponse({
-                    "reply": "No extracted text available for this material."
-                })
-
-            # 🔹 THIS IS THE PROMPT (your requirement)
-            prompt = f"""
-You are a study assistant.
-
-Analyze the following extracted study notes and do the following:
-- Explain the content clearly
-- Summarize key points
-- Keep it simple and exam-oriented
-
-STUDY NOTES:
-{extracted_text[:12000]}
-"""
-
+            # Headers for OpenRouter request
             headers = {
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json"
             }
 
+            # Payload for the API
             payload = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.3
+                "model": "gpt-4o-mini",  # Change model if needed
+                "messages": [{"role": "user", "content": user_message}],
+                "temperature": 0.7
             }
 
-            response = requests.post(
-                OPENROUTER_URL,
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
+            # Send POST request to OpenRouter
+            response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
 
+            # Debug: print raw response
+            print("OpenRouter raw response:", response.text)
+
+            # Parse response JSON
             result = response.json()
-            reply = result.get("choices", [{}])[0].get(
-                "message", {}
-            ).get("content")
+
+            # Extract chatbot reply safely
+            reply = result.get("choices", [{}])[0].get("message", {}).get("content", None)
 
             if not reply:
+                # Return full API response for debugging if reply is empty
                 return JsonResponse({
-                    "reply": "No response from AI."
+                    "reply": "No response from OpenRouter",
+                    "debug": result
                 })
 
+            # Return the chatbot reply
             return JsonResponse({"reply": reply})
 
-        except StudyMaterial.DoesNotExist:
-            return JsonResponse({
-                "reply": "Material not found."
-            })
-
         except Exception as e:
+            # Return any exceptions
             return JsonResponse({"error": str(e)})
 
+    # If GET request
     return JsonResponse({"message": "Chatbot API running"})
 
 # Render chat page

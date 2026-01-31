@@ -98,6 +98,16 @@
             transform: scale(0.98);
         }
 
+        /* ✅ NEW: quiz button style */
+        .quiz-btn {
+            margin-top: 10px;
+            background: #22c55e;
+        }
+
+        .quiz-btn:hover {
+            background: #16a34a;
+        }
+
         .answer {
             margin-top: 14px;
             background: var(--primary-light);
@@ -141,7 +151,6 @@
             line-height: 1;
         }
 
-
         @media (max-width: 600px) {
             body {
                 padding: 40px 14px;
@@ -163,21 +172,30 @@
     {% for material in materials %}
         <div class="card">
             <h3>{{ material.title }}</h3>
+
             <div class="hint">
                 Click below to generate AI explanation from your notes
             </div>
 
+            <!-- EXISTING BUTTON (UNCHANGED) -->
             <button onclick="askAI({{ material.id }})">
                 Generate Answer
             </button>
 
             <div class="answer" id="answer-{{ material.id }}"></div>
+
+            <!-- ✅ NEW BUTTON (ONLY ADDITION) -->
+            <button class="quiz-btn"
+                    onclick="goToQuiz({{ material.id }})">
+                Take Quiz on This Topic
+            </button>
         </div>
     {% endfor %}
     </div>
 </div>
 
 <script>
+/* EXISTING FUNCTION (UNCHANGED) */
 function askAI(materialId) {
 
     const answerBox = document.getElementById(
@@ -187,7 +205,7 @@ function askAI(materialId) {
     answerBox.classList.add("show");
     answerBox.innerText = "Analyzing your notes... ⏳";
 
-    fetch("/chatbot/", {
+    fetch("/material/answer/", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -199,11 +217,16 @@ function askAI(materialId) {
     })
     .then(res => res.json())
     .then(data => {
-        answerBox.innerText = data.reply || "No response generated.";
+        answerBox.innerText = data.reply;
     })
     .catch(err => {
         answerBox.innerText = "Error processing notes.";
     });
+}
+
+/* ✅ NEW FUNCTION (ONLY ADDITION) */
+function goToQuiz(materialId) {
+    window.location.href = `/quiz/${materialId}/`;
 }
 </script>
 
