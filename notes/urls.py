@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page
+from django.conf import settings
+from django.conf.urls.static import static
+
+from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page, upload_material
 
 urlpatterns = [
 
@@ -27,8 +30,13 @@ urlpatterns = [
 
     path("login/", login_page, name="login"),
     path("register/", register_page, name="register"),
-    
+
+    path('upload/',upload_material,name='upload'),
+
     path("dashboard/", dashboard, name="dashboard"),
     path("chatbot/", chatbot),
     path("chat/", chat_page),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

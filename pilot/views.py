@@ -7,6 +7,12 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth import get_user_model,authenticate, login
+from .models import StudyMaterial
+from PyPDF2 import PdfReader
+from django.contrib.auth.decorators import login_required
+
+
+from pilot.models import StudyMaterial
 
 
 
@@ -65,7 +71,50 @@ def register_page(request):
 
 def dashboard(request):
     return render(request, "pilot/dashboard.html")
+# --------------------------------------------------------------
+# PDF UPLOAD & PROCESSING
+#---------------------------------------------------------------
 
+@login_required
+def upload_material(request):
+    material = None
+    extracted_text = None
+
+    if request.method == "POST":
+        title = request.POST.get("title")
+        pdf_file = request.FILES.get("pdf")
+
+        # Save material
+        material = StudyMaterial.objects.create(
+            student=request.user,   # 👈 uses your ForeignKey
+            title=title,
+            pdf=pdf_file
+        )
+
+        # ---- SIMPLE PDF TEXT EXTRACTION ----
+        text = ""
+        reader = PdfReader(material.pdf.path)
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+
+        material.extracted_text = text
+        material.cleaned_text = text.strip()
+        material.save()
+
+        extracted_text = text[:3000]  # preview limit
+
+        messages.success(request, "PDF uploaded and text extracted successfully")
+
+    return render(
+        request,
+        "pilot/upload_material.html",
+        {
+            "material": material,
+            "extracted_text": extracted_text
+        }
+    )
 
 
 
