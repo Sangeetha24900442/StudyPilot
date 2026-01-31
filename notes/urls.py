@@ -19,7 +19,8 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page, upload_material
+from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page, upload_material,material_view
+
 
 urlpatterns = [
 
@@ -32,6 +33,8 @@ urlpatterns = [
     path("register/", register_page, name="register"),
 
     path('upload/',upload_material,name='upload'),
+    path("materials/", material_view, name="material_view"),
+
 
     path("dashboard/", dashboard, name="dashboard"),
     path("chatbot/", chatbot),

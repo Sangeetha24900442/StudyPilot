@@ -12,8 +12,6 @@ from PyPDF2 import PdfReader
 from django.contrib.auth.decorators import login_required
 
 
-from pilot.models import StudyMaterial
-
 
 
 User = get_user_model()
@@ -75,7 +73,6 @@ def dashboard(request):
 # PDF UPLOAD & PROCESSING
 #---------------------------------------------------------------
 
-@login_required
 def upload_material(request):
     material = None
     extracted_text = None
@@ -84,14 +81,12 @@ def upload_material(request):
         title = request.POST.get("title")
         pdf_file = request.FILES.get("pdf")
 
-        # Save material
         material = StudyMaterial.objects.create(
-            student=request.user,   # 👈 uses your ForeignKey
+            student=request.user,
             title=title,
             pdf=pdf_file
         )
 
-        # ---- SIMPLE PDF TEXT EXTRACTION ----
         text = ""
         reader = PdfReader(material.pdf.path)
         for page in reader.pages:
@@ -103,9 +98,12 @@ def upload_material(request):
         material.cleaned_text = text.strip()
         material.save()
 
-        extracted_text = text[:3000]  # preview limit
+        extracted_text = text[:3000]
 
-        messages.success(request, "PDF uploaded and text extracted successfully")
+        messages.success(
+            request,
+            "PDF uploaded and text extracted successfully"
+        )
 
     return render(
         request,
@@ -116,6 +114,18 @@ def upload_material(request):
         }
     )
 
+def material_view(request):
+    materials = StudyMaterial.objects.filter(
+        student=request.user
+    ).order_by("-uploaded_at")
+
+    return render(
+        request,
+        "pilot/material_view.html",
+        {
+            "materials": materials
+        }
+    )
 
 
 
