@@ -16,12 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from pilot.views import chatbot,chat_page
+from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("home/", home, name="home"),
+    path("login/", login_page, name="login"),
+    path("register/", register_page, name="register"),
+    path("dashboard/", dashboard, name="dashboard"),
     path("chatbot/", chatbot),
-    path("chat/", chat_page)
+    path("chat/", chat_page),
 ]
-
-
