@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StudyPilot Chatbot</title>
+</head>
+<body>
+
+<h2>StudyPilot Chatbot 🤖</h2>
+
+<input id="msg" placeholder="Type your message">
+<button onclick="send()">Send</button>
+
+<p><b>Bot:</b> <span id="reply"></span></p>
+
+<script>
+function send() {
+    fetch("/chatbot/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: document.getElementById("msg").value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("reply").innerText =
+            data.reply || "No reply received";
+    })
+    .catch(err => {
+        document.getElementById("reply").innerText = "Error";
+    });
+}
+</script>
+
+
+</body>
+</html>
