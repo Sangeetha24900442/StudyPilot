@@ -6,24 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: "Segoe UI", Roboto, sans-serif;
             background: #f7f9fc;
+            color: #111827;
         }
 
+        /* ---------- TOP HEADER (MyCamu Style) ---------- */
+        .top-header {
+            width: 100%;
+            padding: 18px 32px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #1a73e8;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .brand {
+            font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* ---------- PAGE CONTAINER ---------- */
         .container {
-            min-height: 100vh;
+            min-height: calc(100vh - 70px);
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 40px 20px;
         }
 
         .card {
             background: #ffffff;
             width: 420px;
             padding: 35px;
-            border-radius: 16px;
+            border-radius: 18px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.08);
         }
 
@@ -85,17 +120,36 @@
             border-radius: 999px;
             color: #ffffff;
             font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
         }
 
         button:hover {
             background: #155fc4;
         }
+
+        textarea {
+            width: 100%;
+            height: 220px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+            background: #f9fafb;
+            resize: none;
+        }
     </style>
 </head>
 
 <body>
 
+<!-- TOP HEADER -->
+<div class="top-header">
+    <a href="/dashboard/" class="back-link">← Back</a>
+    <div class="brand">StudyPilot</div>
+</div>
+
+<!-- MAIN CONTENT -->
 <div class="container">
     <div class="card">
         <h2>Upload Study Material</h2>
@@ -119,20 +173,16 @@
             <input type="file" name="pdf" accept="application/pdf" required>
 
             <button type="submit">Upload PDF</button>
-            
         </form>
+
         {% if material %}
-    <hr style="margin:24px 0">
+            <hr style="margin:24px 0">
 
-    <h3 style="margin-top:20px;">Extracted Text</h3>
-    <textarea style="width:100%; height:220px; padding:10px;">
-{{ extracted_text }}
-    </textarea>
-{% endif %}
-
+            <h3 style="margin-top:20px; font-size:15px;">Extracted Text</h3>
+            <textarea readonly>{{ extracted_text }}</textarea>
+        {% endif %}
     </div>
 </div>
-
 
 </body>
 </html>

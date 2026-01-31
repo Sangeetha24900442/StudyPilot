@@ -147,56 +147,81 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 def chatbot(request):
     if request.method == "POST":
         try:
-            # Load user message from request
+            # 🔹 Load request data (material id)
             data = json.loads(request.body)
-            user_message = data.get("message", "").strip()
+            material_id = data.get("material_id")
 
-            if not user_message:
-                return JsonResponse({"reply": "Please enter a message."})
+            if not material_id:
+                return JsonResponse({
+                    "reply": "Material not specified."
+                })
 
-            # Debug: print API key to check if loaded (remove in production)
-            print("OpenRouter API Key:", settings.OPENROUTER_API_KEY)
+            # 🔹 Fetch the material
+            material = StudyMaterial.objects.get(
+                id=material_id,
+                student=request.user
+            )
 
-            # Headers for OpenRouter request
+            extracted_text = material.extracted_text.strip()
+
+            if not extracted_text:
+                return JsonResponse({
+                    "reply": "No extracted text available for this material."
+                })
+
+            # 🔹 THIS IS THE PROMPT (your requirement)
+            prompt = f"""
+You are a study assistant.
+
+Analyze the following extracted study notes and do the following:
+- Explain the content clearly
+- Summarize key points
+- Keep it simple and exam-oriented
+
+STUDY NOTES:
+{extracted_text[:12000]}
+"""
+
             headers = {
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json"
             }
 
-            # Payload for the API
             payload = {
-                "model": "gpt-4o-mini",  # Change model if needed
-                "messages": [{"role": "user", "content": user_message}],
-                "temperature": 0.7
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.3
             }
 
-            # Send POST request to OpenRouter
-            response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
+            response = requests.post(
+                OPENROUTER_URL,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
 
-            # Debug: print raw response
-            print("OpenRouter raw response:", response.text)
-
-            # Parse response JSON
             result = response.json()
-
-            # Extract chatbot reply safely
-            reply = result.get("choices", [{}])[0].get("message", {}).get("content", None)
+            reply = result.get("choices", [{}])[0].get(
+                "message", {}
+            ).get("content")
 
             if not reply:
-                # Return full API response for debugging if reply is empty
                 return JsonResponse({
-                    "reply": "No response from OpenRouter",
-                    "debug": result
+                    "reply": "No response from AI."
                 })
 
-            # Return the chatbot reply
             return JsonResponse({"reply": reply})
 
+        except StudyMaterial.DoesNotExist:
+            return JsonResponse({
+                "reply": "Material not found."
+            })
+
         except Exception as e:
-            # Return any exceptions
             return JsonResponse({"error": str(e)})
 
-    # If GET request
     return JsonResponse({"message": "Chatbot API running"})
 
 # Render chat page
