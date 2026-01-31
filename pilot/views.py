@@ -1,5 +1,6 @@
 import json
 import requests
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import render, redirect
@@ -14,7 +15,7 @@ User = get_user_model()
 # ---------- PAGE VIEWS ----------
 
 def home(request):
-    return render(request, "pilot/dashboard.html")
+    return render(request, "pilot/home.html")
 
 def login_page(request):
     if request.method == "POST":
@@ -53,8 +54,6 @@ def register_page(request):
             email=email,
             password=password
         )
-
-        # Optional: store full name properly
         if hasattr(user, "full_name"):
             user.full_name = name
             user.save()
@@ -82,39 +81,65 @@ def dashboard(request):
 # CHAT INTEGRATION
 #---------------------------------------------------------------
 
+# OpenRouter API endpoint
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 @csrf_exempt
 def chatbot(request):
     if request.method == "POST":
         try:
+            # Load user message from request
             data = json.loads(request.body)
-            user_message = data.get("message", "")
+            user_message = data.get("message", "").strip()
 
+            if not user_message:
+                return JsonResponse({"reply": "Please enter a message."})
+
+            # Debug: print API key to check if loaded (remove in production)
+            print("OpenRouter API Key:", settings.OPENROUTER_API_KEY)
+
+            # Headers for OpenRouter request
             headers = {
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json"
             }
 
+            # Payload for the API
             payload = {
-                "model": "gpt-4o-mini",  # You can use other OpenRouter models
+                "model": "gpt-4o-mini",  # Change model if needed
                 "messages": [{"role": "user", "content": user_message}],
                 "temperature": 0.7
             }
 
+            # Send POST request to OpenRouter
             response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
+
+            # Debug: print raw response
+            print("OpenRouter raw response:", response.text)
+
+            # Parse response JSON
             result = response.json()
 
-            # Extract the chatbot's reply
-            reply = result.get("choices", [{}])[0].get("message", {}).get("content", "No response from OpenRouter")
+            # Extract chatbot reply safely
+            reply = result.get("choices", [{}])[0].get("message", {}).get("content", None)
 
+            if not reply:
+                # Return full API response for debugging if reply is empty
+                return JsonResponse({
+                    "reply": "No response from OpenRouter",
+                    "debug": result
+                })
+
+            # Return the chatbot reply
             return JsonResponse({"reply": reply})
 
         except Exception as e:
+            # Return any exceptions
             return JsonResponse({"error": str(e)})
 
+    # If GET request
     return JsonResponse({"message": "Chatbot API running"})
 
-# Chat page
+# Render chat page
 def chat_page(request):
     return render(request, "pilot/chat.html")

@@ -19,10 +19,15 @@ from django.urls import path
 from pilot.views import home, login_page, register_page, dashboard, chatbot, chat_page
 
 urlpatterns = [
+
     path("admin/", admin.site.urls),
+
+    path("", home, name="home"),
     path("home/", home, name="home"),
+
     path("login/", login_page, name="login"),
     path("register/", register_page, name="register"),
+    
     path("dashboard/", dashboard, name="dashboard"),
     path("chatbot/", chatbot),
     path("chat/", chat_page),
