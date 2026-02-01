@@ -196,6 +196,102 @@
 
 
     </div>
+
+    <!-- ===== Floating Chatbot Button ===== -->
+<div onclick="toggleChatbot()"
+     style="
+        position:fixed;
+        bottom:22px;
+        right:22px;
+        width:56px;
+        height:56px;
+        background:#1a73e8;
+        color:white;
+        font-size:26px;
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        cursor:pointer;
+        box-shadow:0 12px 25px rgba(0,0,0,0.25);
+        z-index:9999;
+     ">
+    💬
+</div>
+
+<!-- ===== Chatbot Popup ===== -->
+<div id="chatbotPopup"
+     style="
+        position:fixed;
+        bottom:90px;
+        right:22px;
+        width:320px;
+        height:420px;
+        background:white;
+        border-radius:16px;
+        box-shadow:0 25px 50px rgba(0,0,0,0.2);
+        display:none;
+        flex-direction:column;
+        overflow:hidden;
+        z-index:9999;
+     ">
+
+    <!-- Header -->
+    <div style="
+        background:#1a73e8;
+        color:white;
+        padding:12px 14px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        font-size:14px;
+        font-weight:600;
+    ">
+        StudyPilot Assistant 🤖
+        <span onclick="toggleChatbot()"
+              style="cursor:pointer;font-size:16px;">✕</span>
+    </div>
+
+    <!-- Messages -->
+    <div id="chatMessages"
+         style="
+            flex:1;
+            padding:12px;
+            overflow-y:auto;
+            background:#f7f9fc;
+         ">
+    </div>
+
+    <!-- Input -->
+    <div style="
+        display:flex;
+        padding:10px;
+        border-top:1px solid #e5e7eb;
+    ">
+        <input id="chatInput"
+               placeholder="Ask something..."
+               style="
+                    flex:1;
+                    border:1px solid #d1d5db;
+                    border-radius:999px;
+                    padding:8px 12px;
+                    font-size:13px;
+                    outline:none;
+               " />
+        <button onclick="sendChat()"
+                style="
+                    margin-left:6px;
+                    background:#1a73e8;
+                    border:none;
+                    color:white;
+                    border-radius:999px;
+                    padding:8px 14px;
+                    cursor:pointer;
+                ">
+            ➤
+        </button>
+    </div>
+</div>
 </div>
 
 <script>
@@ -203,6 +299,61 @@
         document.getElementById("sidebar").classList.toggle("closed");
         document.getElementById("main").classList.toggle("full");
     }
+
+    function toggleChatbot() {
+    const popup = document.getElementById("chatbotPopup");
+    popup.style.display =
+        popup.style.display === "flex" ? "none" : "flex";
+}
+
+function addChatMsg(text, isUser) {
+    const div = document.createElement("div");
+    div.innerText = text;
+    div.style.maxWidth = "80%";
+    div.style.padding = "8px 12px";
+    div.style.borderRadius = "14px";
+    div.style.marginBottom = "8px";
+    div.style.fontSize = "13px";
+
+    if (isUser) {
+        div.style.background = "#1a73e8";
+        div.style.color = "white";
+        div.style.marginLeft = "auto";
+    } else {
+        div.style.background = "#e5e7eb";
+        div.style.color = "#111827";
+    }
+
+    document.getElementById("chatMessages").appendChild(div);
+    div.scrollIntoView();
+}
+
+    function sendChat() {
+        const input = document.getElementById("chatInput");
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        addChatMsg(msg, true);
+        input.value = "";
+
+        addChatMsg("Typing...", false);
+
+        fetch("/chatbot/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const msgs = document.getElementById("chatMessages").children;
+            msgs[msgs.length - 1].remove();
+            addChatMsg(data.reply || "No response", false);
+        })
+        .catch(() => {
+            addChatMsg("Error connecting to assistant.", false);
+        });
+    }
+
 </script>
 
 </body>
