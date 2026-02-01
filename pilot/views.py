@@ -279,6 +279,8 @@ def quiz_result(request, material_id):
         {"score": score, "total": total}
     )
 
+def profile_page(request):
+    return render(request, "pilot/profile.html")
 
 
 
