@@ -67,12 +67,14 @@ def register_page(request):
 
     return render(request, "pilot/register.html")
 
+@login_required
 def dashboard(request):
     return render(request, "pilot/dashboard.html")
 # --------------------------------------------------------------
 # PDF UPLOAD & PROCESSING
 #---------------------------------------------------------------
 
+@login_required
 def upload_material(request):
     material = None
     extracted_text = None
@@ -115,6 +117,7 @@ def upload_material(request):
         }
     )
 
+@login_required
 def material_view(request):
     materials = StudyMaterial.objects.filter(
         student=request.user
@@ -127,6 +130,7 @@ def material_view(request):
             "materials": materials
         }
     )
+
 @login_required
 def material_answer(request):
     if request.method != "POST":
@@ -160,7 +164,7 @@ STUDY NOTES:
         }
 
         payload = {
-            "model": "openai/gpt-5.2-codex",
+            "model": "mistralai/mixtral-8x7b-instruct",
             "messages": [
                 {"role": "user", "content": prompt}
             ],
@@ -176,7 +180,6 @@ STUDY NOTES:
 
         result = response.json()
 
-        # 🔴 SAFETY CHECK (THIS WAS MISSING)
         if "choices" not in result:
             return JsonResponse({
                 "reply": "AI did not return a valid response."
@@ -190,7 +193,8 @@ STUDY NOTES:
         return JsonResponse({
             "reply": f"Error generating answer: {str(e)}"
         })
-    
+
+
 @login_required
 def quiz_page(request, material_id):
     material = StudyMaterial.objects.get(
@@ -248,7 +252,7 @@ STUDY NOTES:
     }
 
     payload = {
-        "model": "openai/gpt-5.2-codex",
+        "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
@@ -282,13 +286,6 @@ def quiz_result(request, material_id):
 def profile_page(request):
     return render(request, "pilot/profile.html")
 
-
-
-
-
-
-
-
 # --------------------------------------------------------------
 # CHAT INTEGRATION
 #---------------------------------------------------------------
@@ -297,6 +294,7 @@ def profile_page(request):
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 @csrf_exempt
+@login_required
 def chatbot(request):
     if request.method == "POST":
         try:
@@ -318,7 +316,7 @@ def chatbot(request):
 
             # Payload for the API
             payload = {
-                "model": "gpt-4o-mini",  # Change model if needed
+                "model": "mistralai/mixtral-8x7b-instruct",  # Change model if needed
                 "messages": [{"role": "user", "content": user_message}],
                 "temperature": 0.7
             }
@@ -352,6 +350,6 @@ def chatbot(request):
     # If GET request
     return JsonResponse({"message": "Chatbot API running"})
 
-# Render chat page
+@login_required
 def chat_page(request):
     return render(request, "pilot/chat.html")
